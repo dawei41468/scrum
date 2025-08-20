@@ -162,6 +162,56 @@ Expand iteratively in Sprints, using the app itself for project management!
 - Load Testing: Simulate large teams.
 - User Acceptance: Beta testing with real Scrum teams.
 
+## MVP Implementation Status (Current)
+
+- **Frontend Auth**:
+  - Centralized JWT axios instance with request/response interceptors in `frontend/src/api/http.js`.
+  - `ProtectedRoute` wraps authenticated routes in `frontend/src/App.js`.
+  - Login page redirects to `/backlog` when already authenticated.
+- **UI/UX Enhancements**:
+  - Bottom navigation uses `lucide-react` icons.
+  - Reusable UI primitives (`Card`, `Input`, `Select`, `Button`), inline field errors, loading states, and toasts on key actions.
+
+These complete core MVP polish for authentication and navigation.
+
+## Role-Based Access Control (RBAC)
+
+The system enforces role permissions on the backend and gates UI controls on the frontend. JWT includes the user's `role`.
+
+- **Backlog**
+  - Create, Delete, Update (non-status fields): `product_owner`
+  - Update status (board moves): `developer`, `scrum_master`, `product_owner`
+  - Read: any authenticated user
+
+- **Sprints**
+  - Create, Update, Delete: `scrum_master`, `product_owner`
+  - Add/Remove sprint items: `scrum_master`, `product_owner`
+  - Read (list/detail/burndown): any authenticated user
+
+Notes:
+- Frontend decodes the JWT from `localStorage` to display role and hide unauthorized controls.
+- Backend returns HTTP 403 for insufficient permissions; backend is the source of truth.
+
+## Post-MVP Roadmap (Next After MVP Setup)
+
+1. **Testing & Stability**
+   - Frontend tests (route guard redirects, login validation/remember-me, nav highlighting).
+   - Backend API tests for auth-protected endpoints and error cases.
+2. **Auth UX Improvements**
+   - Password strength meter (register flow) and auto-focus first invalid field.
+   - Optional: refresh token flow if backend supports it.
+3. **Role-Based Access Control (RBAC)**
+   - Enforce role permissions across backlog/sprint actions (PO/SM/Dev).
+4. **Board & Sprint Enhancements**
+   - Subtasks/checklists, assignees, and due dates.
+   - Improve burndown with ideal vs actual trend, tooltip details.
+5. **Performance & DX**
+   - Pagination/virtualization for large backlogs.
+   - API error normalization and consistent toast messages.
+6. **CI/CD & Ops**
+   - Add linting/formatting, GitHub Actions for build/test.
+   - Containerize frontend separately or use a reverse proxy for unified hosting.
+
 ## Deployment Instructions
 1. **Local Dev**: Run backend with `uvicorn main:app --reload` in the backend directory and frontend with `npm start` in the frontend directory.
 2. **Tencent Cloud**:

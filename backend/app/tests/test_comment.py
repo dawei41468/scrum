@@ -12,7 +12,7 @@ def client():
 
 @pytest.fixture
 def auth_token(client):
-    # Register a user
+    # Register a user (developer) for commenting actions
     client.post("/users/register", json={
         "username": "testcomment",
         "password": "testpass",
@@ -27,13 +27,28 @@ def auth_token(client):
     return response.json()["access_token"]
 
 @pytest.fixture
-def backlog_item_id(client, auth_token):
+def po_token(client):
+    # Register product owner for creating backlog items
+    client.post("/users/register", json={
+        "username": "po_for_comments",
+        "password": "testpass",
+        "role": "product_owner"
+    })
+    response = client.post("/users/login", data={
+        "username": "po_for_comments",
+        "password": "testpass"
+    })
+    assert response.status_code == 200
+    return response.json()["access_token"]
+
+@pytest.fixture
+def backlog_item_id(client, po_token):
     response = client.post("/backlogs/", json={
         "title": "Test Item for Comment",
         "description": "Test Description",
         "priority": 1,
         "story_points": 3
-    }, headers={"Authorization": f"Bearer {auth_token}"})
+    }, headers={"Authorization": f"Bearer {po_token}"})
     return response.json()["id"]
 
 def test_add_comment(client, auth_token, backlog_item_id):

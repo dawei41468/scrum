@@ -67,18 +67,61 @@ scrum-app/
 1. **Install Dependencies**:
    - Backend: `cd backend && pip install -r requirements.txt`
    - Frontend: `cd frontend && npm install`
+   - UI Icons: `npm install lucide-react` (in `frontend/`)
 
 2. **Environment Variables**:
-   - Backend: Set `MONGO_URI` in `backend/.env`
-   - Frontend: Set `REACT_APP_API_URL` in `frontend/.env`
+   - Backend: Set `MONGO_URI` in `backend/.env` (see `backend/.env.example`).
+   - Frontend: Set `REACT_APP_API_URL` in `frontend/.env` (see `frontend/.env.example`).
+     - Example: `REACT_APP_API_URL=http://localhost:8000`
 
-3. **Run with Docker** (recommended):
+3. **Run Locally (without Docker)**:
+   - Backend: `cd backend && uvicorn app.main:app --reload --host 0.0.0.0 --port 8000`
+   - Frontend: `cd frontend && npm start`
+
+4. **Run with Docker** (recommended):
    - Ensure Docker and Docker Compose are installed.
    - From project root: `docker-compose up --build`
 
-4. **Access**:
+5. **Access**:
    - Frontend: `http://localhost:3000`
    - Backend API: `http://localhost:8000`
+
+## Authentication & Routing
+
+- **JWT Interceptor** (`frontend/src/api/http.js`):
+  - Automatically attaches `Authorization: Bearer <token>` from `localStorage` to every request.
+  - On `401 Unauthorized`, it clears the token and redirects to `/login`.
+
+- **Protected Routes** (`frontend/src/components/ProtectedRoute.jsx` and `frontend/src/App.js`):
+  - The root `Layout` and its children (`BacklogPage`, `SprintPage`, `BoardPage`) are wrapped in `ProtectedRoute`.
+  - Unauthenticated users are redirected to `/login`.
+
+- **Login/Token Storage**:
+  - Successful login stores `token` in `localStorage`.
+  - Subsequent API calls use the interceptor; no manual header setup needed.
+
+## Role-Based Access Control (RBAC)
+
+The backend enforces RBAC and the frontend gates controls for better UX. JWT includes the user's `role`.
+
+- **Backlog**
+  - Create, Delete, Update (non-status fields): product_owner
+  - Update status (e.g., board column move): developer, scrum_master, product_owner
+  - Read: any authenticated user
+
+- **Sprints**
+  - Create, Update, Delete: scrum_master, product_owner
+  - Add/Remove sprint items: scrum_master, product_owner
+  - Read (list, detail, burndown): any authenticated user
+
+Notes:
+- Frontend reads the role from the JWT stored in `localStorage` and shows/hides action controls accordingly.
+- Backend remains the source of truth and returns 403 for insufficient permissions.
+
+## UI Icons
+
+- Bottom navigation uses `lucide-react` icons.
+- If icons don’t render, make sure `lucide-react` is installed in `frontend/` and restart the dev server.
 
 ## Deployment
 

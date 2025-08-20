@@ -10,41 +10,80 @@ def client():
     with TestClient(app) as c:
         yield c
 
-@pytest.fixture
-def auth_token(client):
-    # Register a user
+def register_and_login(client, username: str, role: str) -> str:
     client.post("/users/register", json={
-        "username": "testbacklog",
+        "username": username,
         "password": "testpass",
-        "role": "developer"
+        "role": role
     })
-    
-    # Login to get token
-    response = client.post("/users/login", data={
-        "username": "testbacklog",
+    resp = client.post("/users/login", data={
+        "username": username,
         "password": "testpass"
     })
-    return response.json()["access_token"]
+    assert resp.status_code == 200
+    return resp.json()["access_token"]
 
-def test_create_backlog_item(client, auth_token):
+@pytest.fixture
+def dev_token(client):
+    return register_and_login(client, "dev_backlog", "developer")
+
+@pytest.fixture
+def po_token(client):
+    return register_and_login(client, "po_backlog", "product_owner")
+
+def test_backlog_reads_allowed(client, dev_token):
+    # Reads should be allowed for any authenticated user
+    resp = client.get("/backlogs/", headers={"Authorization": f"Bearer {dev_token}"})
+    assert resp.status_code == 200
+
+def test_dev_cannot_create_backlog_item(client, dev_token):
     response = client.post("/backlogs/", json={
         "title": "Test Item",
         "description": "Test Description",
         "priority": 1,
         "story_points": 3
-    }, headers={"Authorization": f"Bearer {auth_token}"})
-    assert response.status_code == 200
-    assert response.json()["title"] == "Test Item"
+    }, headers={"Authorization": f"Bearer {dev_token}"})
+    assert response.status_code == 403
 
-def test_get_backlog_items(client, auth_token):
-    # Create an item first
-    client.post("/backlogs/", json={
-        "title": "Test Item 2",
-        "description": "Test Description 2",
-        "priority": 2,
-        "story_points": 5
-    }, headers={"Authorization": f"Bearer {auth_token}"})
-    
-    response = client.get("/backlogs/", headers={"Authorization": f"Bearer {auth_token}"})
-    assert response.status_code == 200
-    assert len(response.json()) > 0
+def test_po_can_create_and_delete_backlog_item(client, po_token):
+    create_resp = client.post("/backlogs/", json={
+        "title": "PO Item",
+        "description": "PO Description",
+        "priority": 1,
+        "story_points": 3
+    }, headers={"Authorization": f"Bearer {po_token}"})
+    assert create_resp.status_code == 200
+    item_id = create_resp.json()["id"]
+
+    del_resp = client.delete(f"/backlogs/{item_id}", headers={"Authorization": f"Bearer {po_token}"})
+    assert del_resp.status_code == 200
+
+def test_status_only_update_allowed_for_dev(client, po_token, dev_token):
+    # PO creates an item first
+    create_resp = client.post("/backlogs/", json={
+        "title": "Status Item",
+        "description": "X",
+        "priority": 1,
+        "story_points": 2
+    }, headers={"Authorization": f"Bearer {po_token}"})
+    assert create_resp.status_code == 200
+    item_id = create_resp.json()["id"]
+
+    # Developer can update status
+    up_resp = client.put(f"/backlogs/{item_id}", json={"status": "in_progress"}, headers={"Authorization": f"Bearer {dev_token}"})
+    assert up_resp.status_code == 200
+    assert up_resp.json().get("status") in ("in_progress", "in_progress")
+
+def test_non_status_update_forbidden_for_dev(client, po_token, dev_token):
+    # PO creates an item
+    create_resp = client.post("/backlogs/", json={
+        "title": "Edit Guard",
+        "description": "X",
+        "priority": 1,
+        "story_points": 2
+    }, headers={"Authorization": f"Bearer {po_token}"})
+    item_id = create_resp.json()["id"]
+
+    # Dev tries to change title -> should be forbidden
+    up_resp = client.put(f"/backlogs/{item_id}", json={"title": "Hacked"}, headers={"Authorization": f"Bearer {dev_token}"})
+    assert up_resp.status_code == 403

@@ -1,0 +1,15 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* App globals */
+html, body, #root {
+  height: 100%;
+}
+
+/* Example layer to tweak typography if desired */
+@layer base {
+  body {
+    @apply bg-gray-50 text-gray-900;
+  }
+}

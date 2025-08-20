@@ -7,10 +7,10 @@ from typing import List
 router = APIRouter(prefix="/sprints", tags=["sprints"])
 
 # Auth dependency
-from ..utils.auth import get_current_user
+from ..utils.auth import get_current_user, require_roles
 
 @router.post("/", response_model=SprintResponse)
-async def create_sprint_item(sprint: SprintCreate, current_user: dict = Depends(get_current_user)):
+async def create_sprint_item(sprint: SprintCreate, current_user: dict = Depends(require_roles('scrum_master', 'product_owner'))):
     return await create_sprint(sprint)
 
 @router.get("/", response_model=List[SprintResponse])
@@ -25,28 +25,28 @@ async def read_sprint(sprint_id: str, current_user: dict = Depends(get_current_u
     return sprint
 
 @router.put("/{sprint_id}", response_model=SprintResponse)
-async def update_sprint_item(sprint_id: str, update_data: dict, current_user: dict = Depends(get_current_user)):
+async def update_sprint_item(sprint_id: str, update_data: dict, current_user: dict = Depends(require_roles('scrum_master', 'product_owner'))):
     sprint = await update_sprint(sprint_id, update_data)
     if sprint is None:
         raise HTTPException(status_code=404, detail="Sprint not found")
     return sprint
 
 @router.delete("/{sprint_id}")
-async def delete_sprint_item(sprint_id: str, current_user: dict = Depends(get_current_user)):
+async def delete_sprint_item(sprint_id: str, current_user: dict = Depends(require_roles('scrum_master', 'product_owner'))):
     deleted = await delete_sprint(sprint_id)
     if not deleted:
         raise HTTPException(status_code=404, detail="Sprint not found")
     return {"message": "Sprint deleted"}
 
 @router.post("/{sprint_id}/items/{item_id}", response_model=SprintResponse)
-async def add_item(sprint_id: str, item_id: str, current_user: dict = Depends(get_current_user)):
+async def add_item(sprint_id: str, item_id: str, current_user: dict = Depends(require_roles('scrum_master', 'product_owner'))):
     sprint = await add_item_to_sprint(sprint_id, item_id)
     if sprint is None:
         raise HTTPException(status_code=404, detail="Sprint not found")
     return sprint
 
 @router.delete("/{sprint_id}/items/{item_id}", response_model=SprintResponse)
-async def remove_item(sprint_id: str, item_id: str, current_user: dict = Depends(get_current_user)):
+async def remove_item(sprint_id: str, item_id: str, current_user: dict = Depends(require_roles('scrum_master', 'product_owner'))):
     sprint = await remove_item_from_sprint(sprint_id, item_id)
     if sprint is None:
         raise HTTPException(status_code=404, detail="Sprint not found")
