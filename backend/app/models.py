@@ -19,6 +19,7 @@ class BacklogItem(BaseModel):
     description: str
     priority: int
     story_points: int
+    type: str = ""
     status: str = "todo"  # todo, in_progress, done
 
 class Sprint(BaseModel):

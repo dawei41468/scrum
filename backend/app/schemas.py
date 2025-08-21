@@ -18,6 +18,7 @@ class BacklogItemCreate(BaseModel):
     description: str
     priority: int
     story_points: int
+    type: str | None = ""
 
 class BacklogItemResponse(BaseModel):
     id: PyObjectId
@@ -25,6 +26,7 @@ class BacklogItemResponse(BaseModel):
     description: str
     priority: int
     story_points: int
+    type: str
     status: str
 
 class SprintCreate(BaseModel):
