@@ -43,11 +43,10 @@ def po_token(client):
 
 @pytest.fixture
 def backlog_item_id(client, po_token):
-    response = client.post("/backlogs/", json={
+    response = client.post("/items", json={
+        "type": "task",
         "title": "Test Item for Comment",
-        "description": "Test Description",
-        "priority": 1,
-        "story_points": 3
+        "description": "Test Description"
     }, headers={"Authorization": f"Bearer {po_token}"})
     return response.json()["id"]
 

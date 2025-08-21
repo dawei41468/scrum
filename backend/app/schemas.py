@@ -1,6 +1,6 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from .models import PyObjectId
-from typing import List, Optional
+from typing import List, Optional, Literal
 from datetime import datetime
 
 class UserCreate(BaseModel):
@@ -28,6 +28,59 @@ class BacklogItemResponse(BaseModel):
     story_points: int
     type: str
     status: str
+
+# --- Unified Items (PBI) Schemas ---
+ItemType = Literal["story", "task", "bug", "spike"]
+
+class SpikeFields(BaseModel):
+    question: str
+    approach: Optional[str] = None
+    timebox_hours: int = Field(gt=0, default=1)
+    exit_criteria: Optional[str] = None
+    deliverable: Optional[str] = None
+
+class ItemCreate(BaseModel):
+    type: ItemType
+    title: str
+    description: Optional[str] = ""
+    status: Optional[str] = "todo"
+    labels: List[str] = []
+    priority: Optional[int | str] = "medium"
+    story_points: Optional[int] = None
+    assignee: Optional[PyObjectId] = None
+    rank: float = 0.0
+    epic_id: Optional[PyObjectId] = None
+    acceptance_criteria: List[str] = []
+    spike: Optional[SpikeFields] = None
+
+class ItemUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    status: Optional[str] = None
+    labels: Optional[List[str]] = None
+    priority: Optional[int | str] = None
+    story_points: Optional[int] = None
+    assignee: Optional[PyObjectId] = None
+    rank: Optional[float] = None
+    epic_id: Optional[PyObjectId] = None
+    acceptance_criteria: Optional[List[str]] = None
+    spike: Optional[SpikeFields] = None
+
+class ItemResponse(BaseModel):
+    id: PyObjectId
+    type: str
+    title: str
+    description: Optional[str]
+    status: str
+    labels: List[str]
+    priority: Optional[int | str]
+    story_points: Optional[int]
+    assignee: Optional[PyObjectId]
+    rank: float
+    epic_id: Optional[PyObjectId]
+    acceptance_criteria: List[str]
+    created_at: Optional[datetime]
+    updated_at: Optional[datetime]
 
 class SprintCreate(BaseModel):
     goal: str

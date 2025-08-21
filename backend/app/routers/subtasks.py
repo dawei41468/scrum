@@ -9,7 +9,7 @@ from ..crud import (
     delete_subtask,
     set_subtask_rank,
     log_audit,
-    get_task,
+    get_backlog_item,
 )
 from ..schemas import SubtaskCreate, SubtaskResponse
 from ..utils.auth import get_current_user, require_roles
@@ -18,10 +18,10 @@ router = APIRouter(prefix="/subtasks", tags=["subtasks"])
 
 @router.post("/", response_model=SubtaskResponse)
 async def create(item: SubtaskCreate, current_user: dict = Depends(require_roles('product_owner'))):
-    # Validate parent task reference if provided
+    # Validate parent task reference if provided (must be an item of type 'task')
     if item.parent_task_id is not None:
-        task = await get_task(item.parent_task_id)
-        if not task:
+        t = await get_backlog_item(item.parent_task_id)
+        if not t or getattr(t, 'type', None) != 'task':
             raise HTTPException(status_code=400, detail="Invalid parent_task_id")
     return await create_subtask(item)
 
@@ -47,8 +47,8 @@ async def update(item_id: str, update_data: dict, current_user: dict = Depends(g
 
     # Validate parent task reference if provided in update
     if isinstance(update_data, dict) and "parent_task_id" in update_data and update_data.get("parent_task_id") is not None:
-        task = await get_task(update_data["parent_task_id"])
-        if not task:
+        t = await get_backlog_item(update_data["parent_task_id"])
+        if not t or getattr(t, 'type', None) != 'task':
             raise HTTPException(status_code=400, detail="Invalid parent_task_id")
 
     item = await update_subtask(item_id, update_data)
@@ -96,8 +96,8 @@ async def move(item_id: str, body: dict, current_user: dict = Depends(require_ro
         raise HTTPException(status_code=400, detail="Invalid payload")
     pid = body.get("parent_task_id")
     if pid is not None:
-        task = await get_task(pid)
-        if not task:
+        t = await get_backlog_item(pid)
+        if not t or getattr(t, 'type', None) != 'task':
             raise HTTPException(status_code=400, detail="Invalid parent_task_id")
     item = await update_subtask(item_id, {"parent_task_id": pid})
     if not item:

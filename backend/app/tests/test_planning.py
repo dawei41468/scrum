@@ -54,9 +54,10 @@ def auth_headers(client):
 
 @pytest.fixture
 def test_story(client, auth_headers):
-    """Create a test story"""
-    response = client.post("/stories/", 
+    """Create a test story via unified items API"""
+    response = client.post("/items/", 
         json={
+            "type": "story",
             "title": "Test Story",
             "description": "Test description",
             "story_points": 0
@@ -281,7 +282,7 @@ def test_set_final_estimate(client, auth_headers, test_story):
     assert response.json()["final_estimate"] == "5"
     
     # Verify story was updated
-    story_response = client.get(f"/stories/{test_story['id']}",
+    story_response = client.get(f"/items/{test_story['id']}",
         headers=auth_headers["developer"]
     )
     assert story_response.json()["story_points"] == 5

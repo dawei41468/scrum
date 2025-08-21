@@ -95,8 +95,8 @@ const BacklogPage = () => {
     try {
       const itemId = item.id;
       setLoadingAudits((m) => ({ ...m, [itemId]: true }));
-      // Backend supports 'story' (and 'epic'); scope audits to stories for now
-      const data = await listAudits({ entity: 'story', entity_id: String(itemId) });
+      // Use unified entity name 'item' for backlog items
+      const data = await listAudits({ entity: 'item', entity_id: String(itemId) });
       setAuditsByItem((m) => ({ ...m, [itemId]: data || [] }));
     } catch (e) {
       toast({ variant: 'error', title: 'Failed to load activity' });

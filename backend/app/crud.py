@@ -42,13 +42,37 @@ async def get_user(username: str) -> Optional[User]:
 
 async def create_backlog_item(item: BacklogItemCreate) -> BacklogItem:
     item_dict = item.model_dump()
+    now = datetime.utcnow()
+    item_dict.setdefault("created_at", now)
+    item_dict.setdefault("updated_at", now)
     result = await database.db.backlog_items.insert_one(item_dict)  # type: ignore
     item_data = {**item_dict, "_id": str(result.inserted_id)}
     return BacklogItem.model_validate(item_data)
 
 async def get_backlog_items() -> List[BacklogItem]:
-    items = []
+    items: List[BacklogItem] = []
     async for doc in database.db.backlog_items.find():  # type: ignore
+        doc["_id"] = str(doc["_id"])
+        items.append(BacklogItem.model_validate(doc))
+    return items
+
+async def get_backlog_items_filtered(filters: Dict[str, Any]) -> List[BacklogItem]:
+    query: Dict[str, Any] = {}
+    # Map simple filters
+    for key in ["type", "status", "epic_id", "assignee"]:
+        val = filters.get(key)
+        if val is not None:
+            query[key] = val
+    # Text search (basic regex OR $text if index exists)
+    q = filters.get("q")
+    if q:
+        query["$or"] = [
+            {"title": {"$regex": q, "$options": "i"}},
+            {"description": {"$regex": q, "$options": "i"}},
+        ]
+    items: List[BacklogItem] = []
+    cursor = database.db.backlog_items.find(query).sort("rank", 1)  # type: ignore
+    async for doc in cursor:
         doc["_id"] = str(doc["_id"])
         items.append(BacklogItem.model_validate(doc))
     return items
@@ -61,6 +85,9 @@ async def get_backlog_item(id: PyObjectId) -> Optional[BacklogItem]:
     return None
 
 async def update_backlog_item(id: PyObjectId, update_data: dict) -> Optional[BacklogItem]:
+    if not isinstance(update_data, dict):
+        update_data = {}
+    update_data["updated_at"] = datetime.utcnow()
     result = await database.db.backlog_items.update_one({"_id": ObjectId(id)}, {"$set": update_data})  # type: ignore
     # Return the item if it exists, regardless of whether fields actually changed
     if result.matched_count:

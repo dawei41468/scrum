@@ -39,7 +39,8 @@ def epic_id(client, po_token):
 
 @pytest.fixture
 def story_id(client, po_token, epic_id):
-    r = client.post("/stories/", json={
+    r = client.post("/items/", json={
+        "type": "story",
         "title": "Bulk Story",
         "epic_id": epic_id,
         "description": "",
@@ -63,13 +64,13 @@ def test_epic_bulk_update_and_audit(client, po_token, epic_id):
 
 def test_story_bulk_update_and_audit(client, po_token, story_id):
     payload = {"labels": ["x"], "story_points": 5, "status": "done", "title": "Bulk Story Updated"}
-    r = client.patch(f"/stories/{story_id}/bulk", json=payload, headers={"Authorization": f"Bearer {po_token}"})
+    r = client.patch(f"/items/{story_id}/bulk", json=payload, headers={"Authorization": f"Bearer {po_token}"})
     assert r.status_code == 200
     body = r.json()
     assert body["labels"] == ["x"]
     assert body["story_points"] == 5
     assert body["status"] == "done"
     assert body["title"] == "Bulk Story Updated"
-    audits = client.get(f"/audits/?entity=story&entity_id={story_id}", headers={"Authorization": f"Bearer {po_token}"})
+    audits = client.get(f"/audits/?entity=item&entity_id={story_id}", headers={"Authorization": f"Bearer {po_token}"})
     assert audits.status_code == 200
     assert any(ev.get("action") == "bulk_update" for ev in audits.json())

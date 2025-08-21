@@ -16,11 +16,21 @@ class User(BaseModel):
 class BacklogItem(BaseModel):
     id: Optional[PyObjectId] = Field(alias="_id", default=None)
     title: str
-    description: str
-    priority: int
-    story_points: int
-    type: str = ""
+    description: str = ""
+    # Unified PBI fields
+    type: str = ""  # story | task | bug | spike
     status: str = "todo"  # todo, in_progress, done
+    labels: List[str] = []
+    # Accept both legacy int and new string priorities
+    priority: int | str | None = "medium"
+    story_points: Optional[int] = None
+    assignee: Optional[PyObjectId] = None
+    rank: float = 0.0
+    epic_id: Optional[PyObjectId] = None
+    acceptance_criteria: List[str] = []
+    # Timestamps (optional to maintain backward-compat with existing data)
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
 
 class Sprint(BaseModel):
     id: Optional[PyObjectId] = Field(alias="_id", default=None)

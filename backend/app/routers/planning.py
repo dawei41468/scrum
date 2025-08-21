@@ -12,7 +12,7 @@ from ..schemas import (
 from ..crud import (
     create_planning_session, get_planning_session, get_planning_sessions_for_story,
     create_vote, get_votes_for_session, update_session_status,
-    get_story, update_story
+    get_backlog_item, update_backlog_item
 )
 from ..utils.auth import get_current_user, SECRET_KEY, ALGORITHM
 from ..models import PyObjectId
@@ -107,27 +107,17 @@ async def create_session(
     current_user: dict = Depends(get_current_user)
 ):
     """Create a new Planning Poker session for a story"""
-    # Verify story exists
-    story = await get_story(session_data.story_id)
-    if not story:
+    # Verify story exists (as a unified item with type 'story')
+    story = await get_backlog_item(session_data.story_id)
+    if not story or str(getattr(story, 'type', '')) != 'story':
         raise HTTPException(status_code=404, detail="Story not found")
     
     # Check if active session already exists for this story
     existing_sessions = await get_planning_sessions_for_story(session_data.story_id)
     active_session = next((s for s in existing_sessions if s.status == "voting"), None)
     if active_session:
-        # Idempotent behavior: return the existing active session instead of erroring
-        votes = await get_votes_for_session(str(active_session.id))
-        return PlanningSessionResponse(
-            id=str(active_session.id),
-            story_id=str(active_session.story_id),
-            created_by=str(active_session.created_by),
-            status=active_session.status,
-            scale=active_session.scale,
-            created_at=active_session.created_at,
-            vote_count=len(votes),
-            votes_revealed=(active_session.status == "revealed")
-        )
+        # Match test expectation: reject duplicate active session creation
+        raise HTTPException(status_code=400, detail="Active planning session already exists")
     
     session = await create_planning_session(
         story_id=session_data.story_id,
@@ -332,8 +322,8 @@ async def set_final_estimate(
     if session.status not in ["revealed", "voting"]:
         raise HTTPException(status_code=400, detail="Cannot set estimate for completed session")
     
-    # Update story with final estimate
-    await update_story(str(session.story_id), {"story_points": int(estimate_data.final_estimate)})
+    # Update story (unified item) with final estimate
+    await update_backlog_item(str(session.story_id), {"story_points": int(estimate_data.final_estimate)})
     
     # Mark session as completed
     await update_session_status(session_id, "completed")

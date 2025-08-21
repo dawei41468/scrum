@@ -43,7 +43,8 @@ def epic_id(client, po_token):
 
 @pytest.fixture
 def story_id(client, po_token, epic_id):
-    r = client.post("/stories/", json={
+    r = client.post("/items/", json={
+        "type": "story",
         "title": "Story 1",
         "epic_id": epic_id,
         "description": "S",
@@ -58,7 +59,8 @@ def story_id(client, po_token, epic_id):
 
 @pytest.fixture
 def task_id(client, po_token, story_id):
-    r = client.post("/tasks/", json={
+    r = client.post("/items/", json={
+        "type": "task",
         "title": "Task X",
         "story_id": story_id,
         "description": "T",
@@ -67,7 +69,6 @@ def task_id(client, po_token, story_id):
     }, headers={"Authorization": f"Bearer {po_token}"})
     assert r.status_code == 200
     body = r.json()
-    assert body["story_id"] == story_id
     return body["id"]
 
 @pytest.fixture
@@ -85,7 +86,13 @@ def subtask_id(client, po_token, task_id):
 # --- Read permissions ---
 
 def test_reads_allowed(client, dev_token, epic_id, story_id, task_id, subtask_id):
-    for path in ["/epics/", "/stories/", "/tasks/", "/subtasks/"]:
+    paths = [
+        "/epics/",
+        "/items/?type=story",
+        "/items/?type=task",
+        "/subtasks/",
+    ]
+    for path in paths:
         resp = client.get(path, headers={"Authorization": f"Bearer {dev_token}"})
         assert resp.status_code == 200
 
@@ -93,15 +100,15 @@ def test_reads_allowed(client, dev_token, epic_id, story_id, task_id, subtask_id
 
 def test_dev_cannot_create(client, dev_token):
     assert client.post("/epics/", json={"title": "E"}, headers={"Authorization": f"Bearer {dev_token}"}).status_code == 403
-    assert client.post("/stories/", json={"title": "S"}, headers={"Authorization": f"Bearer {dev_token}"}).status_code == 403
-    assert client.post("/tasks/", json={"title": "T"}, headers={"Authorization": f"Bearer {dev_token}"}).status_code == 403
+    assert client.post("/items/", json={"type": "story", "title": "S"}, headers={"Authorization": f"Bearer {dev_token}"}).status_code == 403
+    assert client.post("/items/", json={"type": "task", "title": "T"}, headers={"Authorization": f"Bearer {dev_token}"}).status_code == 403
     assert client.post("/subtasks/", json={"title": "ST"}, headers={"Authorization": f"Bearer {dev_token}"}).status_code == 403
 
 # --- Status-only updates allowed for developer ---
 
 def test_status_only_update_for_dev(client, po_token, dev_token, epic_id, story_id, task_id, subtask_id):
     # Dev can change status but not title
-    for path, _id in [("/epics", epic_id), ("/stories", story_id), ("/tasks", task_id), ("/subtasks", subtask_id)]:
+    for path, _id in [("/epics", epic_id), ("/items", story_id), ("/items", task_id), ("/subtasks", subtask_id)]:
         ok = client.put(f"{path}/{_id}", json={"status": "in_progress"}, headers={"Authorization": f"Bearer {dev_token}"})
         assert ok.status_code == 200
         bad = client.put(f"{path}/{_id}", json={"title": "Hacked"}, headers={"Authorization": f"Bearer {dev_token}"})
@@ -114,10 +121,10 @@ def test_po_can_delete(client, po_token, epic_id, story_id, task_id, subtask_id)
     d1 = client.delete(f"/subtasks/{subtask_id}", headers={"Authorization": f"Bearer {po_token}"})
     assert d1.status_code == 200
     # delete task
-    d2 = client.delete(f"/tasks/{task_id}", headers={"Authorization": f"Bearer {po_token}"})
+    d2 = client.delete(f"/items/{task_id}", headers={"Authorization": f"Bearer {po_token}"})
     assert d2.status_code == 200
     # delete story
-    d3 = client.delete(f"/stories/{story_id}", headers={"Authorization": f"Bearer {po_token}"})
+    d3 = client.delete(f"/items/{story_id}", headers={"Authorization": f"Bearer {po_token}"})
     assert d3.status_code == 200
     # delete epic
     d4 = client.delete(f"/epics/{epic_id}", headers={"Authorization": f"Bearer {po_token}"})

@@ -15,6 +15,11 @@ async def init_db():
         # Epics
         await db.epics.create_index([("rank", 1)])  # type: ignore
         await db.epics.create_index([("status", 1)])  # type: ignore
+        # Unified Backlog Items
+        await db.backlog_items.create_index([("epic_id", 1), ("rank", 1)])  # type: ignore
+        await db.backlog_items.create_index([("type", 1), ("status", 1)])  # type: ignore
+        await db.backlog_items.create_index([("assignee", 1), ("status", 1)])  # type: ignore
+        await db.backlog_items.create_index([("created_at", -1)])  # type: ignore
         # Stories
         await db.stories.create_index([("epic_id", 1)])  # type: ignore
         await db.stories.create_index([("sprint_id", 1)])  # type: ignore
