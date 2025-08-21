@@ -3,7 +3,6 @@ import { createBrowserRouter, RouterProvider, Navigate } from 'react-router-dom'
 import LoginPage from './pages/LoginPage';
 import BacklogPage from './pages/BacklogPage';
 import EpicsPage from './pages/EpicsPage';
-import StoriesPage from './pages/StoriesPage';
 import SprintPage from './pages/SprintPage';
 import BoardPage from './pages/BoardPage';
 import PlanningSessionPage from './pages/PlanningSessionPage';

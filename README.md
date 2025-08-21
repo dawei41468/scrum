@@ -26,7 +26,7 @@ scrum-app/
 │   │   ├── models.py         # Pydantic models for DB schemas
 │   │   ├── schemas.py        # API request/response schemas
 │   │   ├── crud.py           # CRUD operations
-│   │   ├── routers/          # API routes (e.g., backlog.py, sprint.py, user.py)
+│   │   ├── routers/          # API routes (e.g., items.py, epics.py, sprint.py, user.py)
 │   │   ├── utils/            # Helpers (e.g., auth.py for JWT)
 │   │   └── tests/            # Pytest files
 │   ├── requirements.txt      # Dependencies
@@ -124,12 +124,11 @@ The backend enforces RBAC and the frontend gates controls for better UX. JWT inc
 Base paths:
 
 - Epics: `/epics`
-- Stories: `/stories`
-- Tasks: `/tasks`
+- Items (story | task | bug | spike): `/items`
 - Subtasks: `/subtasks`
 - Audits: `/audits`
 
-Common endpoints (for each of Epics/Stories/Tasks/Subtasks):
+Common endpoints (for Epics/Items/Subtasks):
 
 - `POST /` — create (PO only)
 - `GET /` — list (all roles)
@@ -143,7 +142,7 @@ Common endpoints (for each of Epics/Stories/Tasks/Subtasks):
 
 Audits:
 
-- `GET /audits?entity=epic|story|task|subtask&entity_id=<id>` — returns recent audit events
+- `GET /audits?entity=epic|item|subtask&entity_id=<id>` — returns recent audit events
 
 Examples:
 
@@ -164,11 +163,11 @@ curl -X PATCH \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"labels":["a","b"],"story_points":8}' \
-  http://localhost:8000/stories/ID/bulk
+  http://localhost:8000/items/ID/bulk
 
 curl -X GET \
   -H "Authorization: Bearer $TOKEN" \
-  'http://localhost:8000/audits?entity=story&entity_id=ID'
+  'http://localhost:8000/audits?entity=item&entity_id=ID'
 ```
 
 Notes:
@@ -203,19 +202,19 @@ This project includes a minimal Planning Poker implementation with REST + WebSoc
 - WS client helper: `frontend/src/api/planningWs.js`
 - React WS hook: `frontend/src/hooks/usePlanningSessionWS.js`
 - UI page: `frontend/src/pages/PlanningSessionPage.js` (route: `/planning/:sessionId`)
-- Entry point to create sessions: on the `Stories` page each story has a `Plan` button (PO only) that creates a session then navigates to the session page.
+- Entry point to create sessions: on the Backlog page, filter by `type=story` and use the `Plan` action on a story row (PO only) to create a session then navigate to the session page.
 
 ### Local testing
 
 1. Login to obtain a JWT (stored in `localStorage`).
-2. Navigate to `Stories`, click `Plan` on a story to create a session.
+2. Navigate to `Backlog` and filter by `type=story`, click `Plan` on a story to create a session.
 3. The app navigates to `/planning/{sessionId}`. Open the same URL in another browser/incognito to simulate another participant.
 4. Cast votes in both windows; the vote count updates live (values remain hidden).
 5. As Product Owner/Scrum Master (or session creator), click `Reveal votes` to display values and statistics. You can then set a final estimate.
 
 ### Permissions
 
-- __Create session__: Product Owner only (via Stories page “Plan” button).
+- __Create session__: Product Owner only (via Backlog page “Plan” action on a story).
 - __Reveal votes__: Session creator, Product Owner, or Scrum Master.
 - __Set final estimate__: Same as reveal permission.
 - __Join & vote__: Any authenticated user with a valid JWT can join a session link and vote. Votes remain anonymous until reveal.
