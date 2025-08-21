@@ -114,10 +114,24 @@ The backend enforces RBAC and the frontend gates controls for better UX. JWT inc
   - Add/Remove sprint items: scrum_master, product_owner
   - Read (list, detail, burndown): any authenticated user
 
-- **Hierarchy (Epics, Stories, Tasks, Subtasks)**
+- **Hierarchy (Epics, Items, Subtasks)**
   - Create/Delete/Full update (including title, description, labels, story_points, relations, rank): product_owner
   - Status-only updates: developer, scrum_master, product_owner
   - Read: any authenticated user
+
+## Hierarchy Model
+
+- Epic → Item → Subtask
+- Item has a `type`: `story | task | bug | spike`
+
+```
+Epic
+ └─ Item (type: story | task | bug | spike)
+     └─ Subtask
+```
+
+- The Backlog UI shows Items; use filters to view specific types (e.g., `type=story`).
+- APIs for Items are unified under `GET/POST /items`, `GET/PUT/DELETE /items/{id}`.
 
 ## Hierarchy & Audits API
 
