@@ -1,6 +1,6 @@
 import React from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
-import { ListTodo, Flag, LogOut } from 'lucide-react'
+import { ListTodo, Flag, LogOut, Layers } from 'lucide-react'
 import { getRole } from '../utils/auth'
 
 const Layout = () => {
@@ -37,7 +37,7 @@ const Layout = () => {
         aria-label="Primary"
       >
         <div className="mx-auto max-w-6xl px-2">
-          <ul className="grid grid-cols-3 text-sm">
+          <ul className="grid grid-cols-4 text-sm">
             <li>
               <NavLink
                 to="/backlog"
@@ -48,6 +48,18 @@ const Layout = () => {
               >
                 <ListTodo aria-hidden className="block h-5 w-5" />
                 <span>Backlog</span>
+              </NavLink>
+            </li>
+            <li>
+              <NavLink
+                to="/epics"
+                className={({ isActive }) => [
+                  'group flex flex-col items-center justify-center gap-0 py-2.5 px-4 h-16 transition-colors',
+                  isActive ? 'text-blue-700 font-medium bg-blue-50' : 'text-gray-700 hover:text-blue-600'
+                ].join(' ')}
+              >
+                <Layers aria-hidden className="block h-5 w-5" />
+                <span>Epics</span>
               </NavLink>
             </li>
             <li>

@@ -18,6 +18,22 @@ export function getRole() {
   }
 }
 
+export function getUserId() {
+  try {
+    const token = localStorage.getItem('token');
+    if (!token) return null;
+    const parts = token.split('.');
+    if (parts.length < 2) return null;
+    const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+    const padded = base64.padEnd(base64.length + (4 - (base64.length % 4)) % 4, '=');
+    const json = atob(padded);
+    const payload = JSON.parse(json);
+    return payload.id || null;
+  } catch {
+    return null;
+  }
+}
+
 export function hasRole(...allowed) {
   const role = getRole();
   if (!role) return false;

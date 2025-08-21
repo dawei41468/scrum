@@ -114,6 +114,63 @@ The backend enforces RBAC and the frontend gates controls for better UX. JWT inc
   - Add/Remove sprint items: scrum_master, product_owner
   - Read (list, detail, burndown): any authenticated user
 
+- **Hierarchy (Epics, Stories, Tasks, Subtasks)**
+  - Create/Delete/Full update (including title, description, labels, story_points, relations, rank): product_owner
+  - Status-only updates: developer, scrum_master, product_owner
+  - Read: any authenticated user
+
+## Hierarchy & Audits API
+
+Base paths:
+
+- Epics: `/epics`
+- Stories: `/stories`
+- Tasks: `/tasks`
+- Subtasks: `/subtasks`
+- Audits: `/audits`
+
+Common endpoints (for each of Epics/Stories/Tasks/Subtasks):
+
+- `POST /` — create (PO only)
+- `GET /` — list (all roles)
+- `GET /{id}` — detail (all roles)
+- `PUT /{id}` — update
+  - Status-only payload like `{ "status": "in_progress" }` allowed for dev/scrum_master/PO
+  - Any other fields require PO
+- `DELETE /{id}` — delete (PO only)
+- `PATCH /{id}/rank` — set rank (PO only) body: `{ "rank": 123.45 }`
+- `PATCH /{id}/bulk` — bulk edit (PO only) body allows multiple fields per entity
+
+Audits:
+
+- `GET /audits?entity=epic|story|task|subtask&entity_id=<id>` — returns recent audit events
+
+Examples:
+
+```bash
+curl -X POST \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"title":"Epic A","description":"...","labels":["feat"]}' \
+  http://localhost:8000/epics/
+
+curl -X PATCH \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"rank": 42.5}' \
+  http://localhost:8000/epics/ID/rank
+
+curl -X PATCH \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"labels":["a","b"],"story_points":8}' \
+  http://localhost:8000/stories/ID/bulk
+
+curl -X GET \
+  -H "Authorization: Bearer $TOKEN" \
+  'http://localhost:8000/audits?entity=story&entity_id=ID'
+```
+
 Notes:
 - Frontend reads the role from the JWT stored in `localStorage` and shows/hides action controls accordingly.
 - Backend remains the source of truth and returns 403 for insufficient permissions.
@@ -122,6 +179,46 @@ Notes:
 
 - Bottom navigation uses `lucide-react` icons.
 - If icons don’t render, make sure `lucide-react` is installed in `frontend/` and restart the dev server.
+
+## Planning Poker (Real-time) 
+
+This project includes a minimal Planning Poker implementation with REST + WebSocket for real-time voting, anonymous until reveal.
+
+### Backend
+
+- REST endpoints (paths assume root API under `REACT_APP_API_URL`):
+  - `POST /planning/sessions` — create a session. body: `{ story_id: string, scale?: 'fibonacci' | 'modified_fibonacci' | 't_shirt' }`
+  - `GET /planning/sessions/{id}` — get session state
+  - `POST /planning/sessions/{id}/vote` — body: `{ value: string }`
+  - `POST /planning/sessions/{id}/reveal` — reveal votes (PO/Scrum Master or creator)
+  - `PUT /planning/sessions/{id}/estimate` — set final estimate after reveal
+
+- WebSocket:
+  - `ws(s)://<API_HOST>/planning/ws/{sessionId}?token=JWT`
+  - Emits events such as: `joined`, `left`, `vote_submitted` (count only), `votes_revealed` (values + stats), `session_completed`.
+
+### Frontend
+
+- API client: `frontend/src/api/planningApi.js`
+- WS client helper: `frontend/src/api/planningWs.js`
+- React WS hook: `frontend/src/hooks/usePlanningSessionWS.js`
+- UI page: `frontend/src/pages/PlanningSessionPage.js` (route: `/planning/:sessionId`)
+- Entry point to create sessions: on the `Stories` page each story has a `Plan` button (PO only) that creates a session then navigates to the session page.
+
+### Local testing
+
+1. Login to obtain a JWT (stored in `localStorage`).
+2. Navigate to `Stories`, click `Plan` on a story to create a session.
+3. The app navigates to `/planning/{sessionId}`. Open the same URL in another browser/incognito to simulate another participant.
+4. Cast votes in both windows; the vote count updates live (values remain hidden).
+5. As Product Owner/Scrum Master (or session creator), click `Reveal votes` to display values and statistics. You can then set a final estimate.
+
+### Permissions
+
+- __Create session__: Product Owner only (via Stories page “Plan” button).
+- __Reveal votes__: Session creator, Product Owner, or Scrum Master.
+- __Set final estimate__: Same as reveal permission.
+- __Join & vote__: Any authenticated user with a valid JWT can join a session link and vote. Votes remain anonymous until reveal.
 
 ## Deployment
 

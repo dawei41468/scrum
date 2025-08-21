@@ -1,4 +1,5 @@
 {
+  "$schema": "https://json.schemastore.org/package",
   "name": "scrum-frontend",
   "version": "0.1.0",
   "private": true,

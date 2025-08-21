@@ -1,12 +1,23 @@
 import React, { useEffect, useState } from 'react';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { getBacklogItems, createBacklogItem, updateBacklogItem, deleteBacklogItem } from '../api/backlogApi';
-import { createComment, getCommentsForItem } from '../api/commentApi';
+import { createComment, getCommentsForItem, deleteComment, updateComment } from '../api/commentApi';
 import Card from '../components/ui/Card';
 import Input from '../components/ui/Input';
 import Button from '../components/ui/Button';
 import { useToast } from '../components/ui/Toast';
-import { hasRole } from '../utils/auth';
+import { hasRole, getUserId } from '../utils/auth';
+
+// Lightweight date formatter for comment timestamps
+const formatDateTime = (value) => {
+  try {
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return '';
+    return d.toLocaleString();
+  } catch {
+    return '';
+  }
+};
 
 const BacklogPage = () => {
   const [items, setItems] = useState([]);
@@ -17,6 +28,8 @@ const BacklogPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const { add: toast } = useToast();
   const canManageBacklog = hasRole('product_owner');
+  const canModerateComments = hasRole('product_owner', 'scrum_master');
+  const userId = getUserId();
 
   // Initial fetch on mount only
   useEffect(() => {
@@ -105,6 +118,31 @@ const BacklogPage = () => {
     fetchComments(itemId);
   };
 
+  const handleDeleteComment = async (itemId, commentId) => {
+    try {
+      await deleteComment(commentId);
+      toast({ variant: 'success', title: 'Comment deleted' });
+      await fetchComments(itemId);
+    } catch (e) {
+      toast({ variant: 'error', title: 'Failed to delete comment' });
+    }
+  };
+
+  const handleEditComment = async (itemId, comment) => {
+    const initial = comment.text || '';
+    const nextText = window.prompt('Edit comment', initial);
+    if (nextText == null) return; // cancelled
+    const trimmed = nextText.trim();
+    if (!trimmed || trimmed === initial) return;
+    try {
+      await updateComment(comment.id, trimmed);
+      toast({ variant: 'success', title: 'Comment updated' });
+      await fetchComments(itemId);
+    } catch (e) {
+      toast({ variant: 'error', title: 'Failed to update comment' });
+    }
+  };
+
   return (
     <div className="space-y-6">
       <h2 className="text-xl font-semibold">Product Backlog</h2>
@@ -183,9 +221,42 @@ const BacklogPage = () => {
                           <div>
                             <h4 className="text-sm font-medium">Comments</h4>
                             <ul className="mt-1 space-y-1">
-                              {(comments[item.id] || []).map(comment => (
-                                <li key={comment.id} className="text-sm text-gray-800">{comment.text}</li>
+                              {([...(comments[item.id] || [])].sort((a, b) => new Date(a.created_at) - new Date(b.created_at))).map((c) => (
+                                <li key={c.id} className="rounded bg-gray-50 px-2 py-1 text-xs text-gray-700">
+                                  <div className="flex items-center justify-between">
+                                    <span className="font-medium text-gray-800">
+                                      {userId && c.user_id === userId ? 'You' : (c.username || (c.user_id ? `User ${String(c.user_id).slice(-6)}` : 'Unknown'))}
+                                    </span>
+                                    <div className="flex items-center gap-2">
+                                      {c.created_at && (
+                                        <span className="text-[10px] text-gray-400">{formatDateTime(c.created_at)}</span>
+                                      )}
+                                      {(userId && (c.user_id === userId || canModerateComments)) && (
+                                        <>
+                                          <button
+                                            type="button"
+                                            className="text-[10px] text-blue-600 hover:underline"
+                                            onClick={() => handleEditComment(item.id, c)}
+                                          >
+                                            Edit
+                                          </button>
+                                          <button
+                                            type="button"
+                                            className="text-[10px] text-red-600 hover:underline"
+                                            onClick={() => handleDeleteComment(item.id, c.id)}
+                                          >
+                                            Delete
+                                          </button>
+                                        </>
+                                      )}
+                                    </div>
+                                  </div>
+                                  <div>{c.text}</div>
+                                </li>
                               ))}
+                              {(!comments[item.id] || comments[item.id].length === 0) && (
+                                <li className="text-xs text-gray-400">No comments yet.</li>
+                              )}
                             </ul>
                             <div className="mt-2 flex gap-2">
                               <Input

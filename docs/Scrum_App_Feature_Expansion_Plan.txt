@@ -1,0 +1,46 @@
+Scrum App Feature Expansion Plan
+This document outlines the features and functions that need to be added to the existing Scrum App repository in order to transform it from an MVP into a fully functional and robust Scrum application. It is structured by phases, reflecting priority and logical build order. Each phase can be translated into a development milestone.
+Phase 1 — Core Scrum Depth (close the MVP gaps)
+- Epics & hierarchy: Epics → user stories → tasks/subtasks; cross-sprint stories; epic progress by story points.
+- Backlog refinement tools: Templates (story definition, acceptance criteria, DoR checklist), bulk edit (labels, assignee, points), drag-rank with audit.
+- Estimation: Planning Poker (real-time session + anonymous votes + reveal), Fibonacci/modified scales, average/median chooser.
+- Sprint planning: Team capacity per member (hours or points), auto-fit suggestions, spillover handling, sprint goal & DoD attestation.
+- Definition of Done/Ready checklists: Per team/project with enforcement.
+Phase 2 — Delivery Workflow & Quality
+- Workflow rules: WIP limits per column, required fields on status change, blockers with reason & dependency links.
+- Code integration: Link PRs/commits/branches to stories; auto-transition on PR merge; show CI status on the card.
+- Reviews & QA: Built-in review tasks, test case links, 'Awaiting review' vs 'Verified' lanes; attach screenshots/videos.
+- Real-time collab: WebSockets for board updates, typing presence, @mentions, comment threads, reactions.
+Phase 3 — Reporting & Insights
+- Velocity & forecasting: Velocity chart (rolling 5–8 sprints), capacity vs. commitment, predict sprint completion date ranges.
+- Burndown/Burn-up: Story points & count variants; scope change overlays; weekends/holidays calendar awareness.
+- Cumulative Flow Diagram (CFD): Lead time, cycle time, queue health; aging WIP report.
+- Release tracking: Fix versions/releases with 'what’s shipped' notes; changelog export.
+Phase 4 — Scale & Portfolio
+- Multi-project/portfolio views: Cross-team roadmaps, portfolio epics with drill-down, program increments (PI planning support).
+- Dependencies & risk: Hard/soft dependencies visualization, risk register with probability/impact, auto risk flags.
+- Objectives & key results (optional): Map sprint goals to quarterly objectives; progress roll-ups.
+Phase 5 — Admin, Security, and Ops
+- RBAC & SSO: Roles beyond PO/SM/Dev (Viewer, Contributor, Admin), SSO (SAML/OIDC), per-project permissions.
+- Audit & compliance: Immutable audit log, data retention policies, backups, export/import options.
+- Custom fields & automations: Text/number/select fields; rule engine for workflow automations.
+- Notifications: Email/Slack/Teams digests, @mentions, reminders for ceremonies and due dates, quiet hours.
+Phase 6 — UX Polish & Accessibility
+- Saved views & advanced search: Query builder, saved filters per user/team.
+- Board ergonomics: Swimlanes, compact mode, keyboard shortcuts, multi-select drag.
+- I18n & a11y: Full localization, WCAG-compliant components, color-blind friendly charts.
+- Mobile-friendly PWA: Quick daily-scrum updates on phone; offline notes sync.
+Implementation Notes (Tailored to FastAPI + React + MongoDB Stack)
+- Realtime: FastAPI + uvicorn + WebSockets (or Socket.IO) with Redis pub/sub for scale; React hooks on the client.
+- Search & filters: MongoDB compound indexes; server-side pagination; text search.
+- Rules/automations: Persisted rules table + background worker (Celery/RQ) for triggers.
+- Reports: Precompute daily aggregates into a metrics collection for fast charts.
+- Integrations: Git providers (GitHub/GitLab) via OAuth apps; Slack/Teams webhooks; CI status APIs.
+- RBAC: Route guards in React; backend scope checks on every endpoint.
+- Testing: API tests with pytest + httpx; React tests with RTL/Jest; e2e with Playwright.
+Minimal Acceptance Checklist
+- Epics/stories/tasks: CRUD, reorder, define AC, link PRs, subtasks roll up points.
+- Planning Poker: invite team, vote anonymously, reveal, set estimate.
+- Sprint planning: set capacity, commitment ≤ capacity, carryover tagged.
+- Reports: velocity (last 8 sprints), sprint burndown, CFD; export PNG/CSV.
+- Security: SSO, project-level permissions, audit log events.
